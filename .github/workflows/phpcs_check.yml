@@ -1,0 +1,40 @@
+name: Run PHPCS Code Validation
+
+on:
+  pull_request:
+    branches:
+      - master
+      - develop
+      - staging
+    types: [opened, synchronize, reopened]
+
+jobs:
+  magento2_phpcs:
+    name: Magento2 PHPCS
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Changed files
+        uses: tj-actions/changed-files@v42
+        id: abc
+        with:
+            files: |
+                **.php
+                **.phtml
+
+      - name: Install Composer dependencies
+        run: | 
+          if [[ -n "${{ steps.abc.outputs.all_changed_files }}" ]]; then
+          composer global config --no-plugins allow-plugins.dealerdirect/phpcodesniffer-composer-installer true 
+          composer global require "squizlabs/php_codesniffer=*" 
+          composer global require magento/magento-coding-standard --dev
+          fi
+
+      - name: Run PHPCS on changed files for Magento standards
+        run: |
+          if [[ -n "${{ steps.abc.outputs.all_changed_files }}" ]]; then
+          ~/.composer/vendor/bin/phpcs --report=full --severity=8 --standard=Magento2 ${{ steps.abc.outputs.all_changed_files }}
+          fi
